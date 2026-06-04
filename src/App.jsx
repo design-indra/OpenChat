@@ -16,6 +16,18 @@ const FREE_MODELS = [
   { id: "google/gemini-2.0-flash-exp:free",              name: "Gemini 2.0 Flash",      tag: "Google",   vision: true  },
   { id: "mistralai/mistral-small-3.2-24b-instruct:free", name: "Mistral Small 3.2",     tag: "Mistral",  vision: true  },
   { id: "microsoft/mai-ds-r1:free",                      name: "Microsoft MAI-DS-R1",   tag: "MS",       vision: false },
+  {
+    id: "nvidia/nemotron-3-ultra-550b-a55b:free",
+    name: "NVIDIA Nemotron Ultra 550B",
+    tag: "NVIDIA",
+    vision: false
+  },
+  {
+    id: "nvidia/nemotron-3.5-content-safety:free",
+    name: "NVIDIA Nemotron Safety",
+    tag: "Safety",
+    vision: false
+  },
 ];
 
 // Deteksi error "endpoint tidak tersedia" → perlu ganti model
@@ -495,7 +507,7 @@ _(Auto-fallback ke: ${usedModel.name})_` : "";
       onDrop={handleDrop}
       style={{
         display: "flex", height: "100vh", width: "100%",
-        background: "#0f0e1a",
+        background: "radial-gradient(circle at top left,#312e81 0%,transparent 30%), radial-gradient(circle at top right,#4c1d95 0%,transparent 30%), linear-gradient(180deg,#09090f,#111827)",
         fontFamily: "'Segoe UI', system-ui, sans-serif",
         overflow: "hidden", position: "relative",
       }}
@@ -515,7 +527,7 @@ _(Auto-fallback ke: ${usedModel.name})_` : "";
         .model-row:hover { background:rgba(124,111,255,.15) !important }
         .ibtn:hover { background:rgba(255,255,255,.1) !important }
         .send-btn:not(:disabled):hover { transform:scale(1.06); filter:brightness(1.1) }
-        .attach-btn:hover { background:rgba(124,111,255,.2) !important; border-color:rgba(124,111,255,.4) !important }
+        .attach-btn:hover { background:rgba(124,111,255,.2) !important; border-color:rgba(124,111,255,.4) !important } .ibtn:hover{transform:scale(1.08)} .send-btn:hover{transform:translateY(-2px)} .model-row:hover{transform:translateX(4px)}
       `}</style>
 
       {/* ── Drag overlay ── */}
@@ -550,11 +562,11 @@ _(Auto-fallback ke: ${usedModel.name})_` : "";
       {showSidebar && (
         <div style={{
           width: 272, flexShrink: 0,
-          background: "rgba(255,255,255,.03)",
+          background: "linear-gradient(180deg, rgba(22,22,40,.92), rgba(15,15,28,.92))",
           borderRight: "1px solid rgba(255,255,255,.07)",
           display: "flex", flexDirection: "column",
           padding: "18px 14px", gap: 18,
-          backdropFilter: "blur(20px)",
+          backdropFilter: "blur(24px)", boxShadow: "20px 0 60px rgba(0,0,0,.35)", borderRight: "1px solid rgba(124,111,255,.18)",
           animation: "fadeUp .3s ease",
           overflowY: "auto",
         }}>
@@ -721,7 +733,7 @@ _(Auto-fallback ke: ${usedModel.name})_` : "";
           padding: "13px 18px",
           borderBottom: "1px solid rgba(255,255,255,.07)",
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          background: "rgba(15,14,26,0.92)", backdropFilter: "blur(10px)",
+          background: "linear-gradient(135deg, rgba(18,18,35,.95), rgba(30,27,55,.95))", backdropFilter: "blur(24px)", boxShadow:"0 10px 40px rgba(0,0,0,.3)",
           position: "sticky", top: 0, zIndex: 10, flexShrink: 0,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -729,9 +741,12 @@ _(Auto-fallback ke: ${usedModel.name})_` : "";
               className="ibtn"
               onClick={() => setShowSidebar((v) => !v)}
               style={{
-                background: "transparent", border: "none", color: "#9d96cc",
-                cursor: "pointer", fontSize: 18, padding: "5px 7px",
-                borderRadius: 8, transition: "background .15s",
+                width:52,height:52,minWidth:52,minHeight:52,
+                background:"linear-gradient(135deg, rgba(124,111,255,.22), rgba(167,139,250,.15))",
+                border:"1px solid rgba(124,111,255,.35)",color:"#fff",
+                cursor:"pointer",fontSize:28,fontWeight:700,borderRadius:16,
+                backdropFilter:"blur(15px)",boxShadow:"0 10px 30px rgba(124,111,255,.35)",
+                zIndex:99999,transition:"all .2s",
               }}
             >☰</button>
             <div>

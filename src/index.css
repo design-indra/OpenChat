@@ -11,9 +11,62 @@ html, body, #root {
 }
 
 body {
-  background: #0f0e1a;
+  background:
+    radial-gradient(circle at top left,#312e81 0%,transparent 35%),
+    radial-gradient(circle at top right,#4c1d95 0%,transparent 35%),
+    linear-gradient(180deg,#09090f,#111827);
+
   color: #e2ddff;
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Premium Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(124,111,255,.35);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(124,111,255,.6);
+}
+
+/* Smooth UI */
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+button {
+  transition: all .2s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: scale(.98);
+}
+
+input,
+textarea {
+  transition: all .2s ease;
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
 }
