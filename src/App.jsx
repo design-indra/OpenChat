@@ -1,18 +1,29 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 /* ─── Models ─────────────────────────────────────────────────────────── */
+// Updated: model free aktif per Juni 2026
 const FREE_MODELS = [
-  { id: "meta-llama/llama-3.2-11b-vision-instruct:free", name: "Llama 3.2 11B Vision", tag: "Vision", vision: true },
-  { id: "meta-llama/llama-3.2-3b-instruct:free",         name: "Llama 3.2 3B",         tag: "Fast",   vision: false },
-  { id: "meta-llama/llama-3.1-8b-instruct:free",         name: "Llama 3.1 8B",         tag: "Smart",  vision: false },
-  { id: "mistralai/mistral-7b-instruct:free",            name: "Mistral 7B",            tag: "Fast",   vision: false },
-  { id: "google/gemma-2-9b-it:free",                     name: "Gemma 2 9B",            tag: "Google", vision: false },
-  { id: "microsoft/phi-3-mini-128k-instruct:free",       name: "Phi-3 Mini 128K",       tag: "Long",   vision: false },
-  { id: "qwen/qwen-2-7b-instruct:free",                  name: "Qwen 2 7B",             tag: "Multi",  vision: false },
-  { id: "nousresearch/hermes-3-llama-3.1-8b:free",       name: "Hermes 3 Llama",        tag: "New",    vision: false },
-  { id: "openchat/openchat-7b:free",                     name: "OpenChat 7B",           tag: "Chat",   vision: false },
-  { id: "gryphe/mythomist-7b:free",                      name: "MythoMist 7B",          tag: "Story",  vision: false },
+  { id: "openrouter/auto",                               name: "Auto (Pilih Terbaik)",  tag: "⚡Auto",   vision: true  },
+  { id: "meta-llama/llama-4-maverick:free",              name: "Llama 4 Maverick",      tag: "Vision",   vision: true  },
+  { id: "meta-llama/llama-4-scout:free",                 name: "Llama 4 Scout",         tag: "Fast",     vision: false },
+  { id: "meta-llama/llama-3.3-70b-instruct:free",       name: "Llama 3.3 70B",         tag: "Smart",    vision: false },
+  { id: "deepseek/deepseek-chat-v3-0324:free",           name: "DeepSeek V3",           tag: "Top",      vision: false },
+  { id: "deepseek/deepseek-r1:free",                     name: "DeepSeek R1",           tag: "Reason",   vision: false },
+  { id: "deepseek/deepseek-r1-0528:free",                name: "DeepSeek R1 (Latest)",  tag: "New",      vision: false },
+  { id: "qwen/qwen3-235b-a22b:free",                     name: "Qwen3 235B",            tag: "Large",    vision: false },
+  { id: "qwen/qwen3-30b-a3b:free",                       name: "Qwen3 30B",             tag: "Balanced", vision: false },
+  { id: "qwen/qwq-32b:free",                             name: "QwQ 32B",               tag: "Reason",   vision: false },
+  { id: "google/gemini-2.0-flash-exp:free",              name: "Gemini 2.0 Flash",      tag: "Google",   vision: true  },
+  { id: "mistralai/mistral-small-3.2-24b-instruct:free", name: "Mistral Small 3.2",     tag: "Mistral",  vision: true  },
+  { id: "microsoft/mai-ds-r1:free",                      name: "Microsoft MAI-DS-R1",   tag: "MS",       vision: false },
 ];
+
+// Deteksi error "endpoint tidak tersedia" → perlu ganti model
+const isEndpointError = (msg = "") =>
+  msg.toLowerCase().includes("no endpoints found") ||
+  msg.toLowerCase().includes("no providers") ||
+  msg.toLowerCase().includes("provider error") ||
+  msg.toLowerCase().includes("model_not_found");
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -403,32 +414,63 @@ export default function App() {
     setLoading(true);
     setError("");
 
+    // Daftar model untuk dicoba: model yang dipilih dulu, lalu fallback
+    const modelQueue = model === "openrouter/auto"
+      ? ["openrouter/auto"]
+      : [model, "openrouter/auto", "meta-llama/llama-4-scout:free"];
+
+    let lastError = null;
+
     try {
-      // FIX: gunakan historyBeforeSend (bukan messages state) agar tidak stale closure
       const apiMessages = buildApiMessages(historyBeforeSend, pendingAtts, userText);
+      let replied = false;
 
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${savedKey}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "https://claude.ai",
-          "X-Title": "AI Chat Tool",
-        },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: "system", content: systemPrompt }, ...apiMessages],
-        }),
-      });
+      for (const tryModel of modelQueue) {
+        try {
+          const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${savedKey}`,
+              "Content-Type": "application/json",
+              "HTTP-Referer": "https://openrouter-chat.vercel.app",
+              "X-Title": "AI Chat Tool",
+            },
+            body: JSON.stringify({
+              model: tryModel,
+              messages: [{ role: "system", content: systemPrompt }, ...apiMessages],
+            }),
+          });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || `Error ${res.status}`);
+          const data = await res.json();
+          const errMsg = data.error?.message || "";
 
-      const reply = data.choices?.[0]?.message?.content || "No response.";
-      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+          // Jika endpoint tidak tersedia, coba model berikutnya
+          if (!res.ok && isEndpointError(errMsg)) {
+            lastError = errMsg;
+            continue;
+          }
+          if (!res.ok) throw new Error(errMsg || `Error ${res.status}`);
+
+          const reply = data.choices?.[0]?.message?.content || "No response.";
+          const usedModel = FREE_MODELS.find(m => m.id === tryModel);
+          const suffix = tryModel !== model && usedModel
+            ? `
+
+_(Auto-fallback ke: ${usedModel.name})_` : "";
+          setMessages((prev) => [...prev, { role: "assistant", content: reply + suffix }]);
+          replied = true;
+          break;
+        } catch (innerErr) {
+          lastError = innerErr.message;
+          if (!isEndpointError(innerErr.message)) throw innerErr;
+        }
+      }
+
+      if (!replied) {
+        throw new Error(lastError || "Semua model tidak tersedia. Coba lagi nanti.");
+      }
     } catch (e) {
       setError("❌ " + (e.message || "Gagal terhubung ke OpenRouter"));
-      // FIX: rollback ke history sebelum pesan user dikirim
       setMessages(historyBeforeSend);
     } finally {
       setLoading(false);
@@ -645,6 +687,17 @@ export default function App() {
             <div style={{ marginTop: 4, color: "#6b5e8e" }}>Drag & drop ke mana saja ✓ · Maks 10 MB</div>
           </div>
 
+          {/* Info fallback */}
+          <div style={{
+            padding: "9px 12px", background: "rgba(74,222,128,.06)",
+            border: "1px solid rgba(74,222,128,.15)", borderRadius: 10,
+            fontSize: 11, color: "#6b9e7c", lineHeight: 1.6,
+          }}>
+            <div style={{ fontWeight: 700, color: "#4ade80", marginBottom: 3 }}>⚡ Auto Fallback Aktif</div>
+            <div>Jika model utama error, otomatis coba model lain.</div>
+            <div style={{ marginTop: 3, color: "#3d6050" }}>Pilih "Auto" untuk hasil terbaik.</div>
+          </div>
+
           {/* Clear */}
           <div style={{ marginTop: "auto" }}>
             <button
@@ -663,12 +716,13 @@ export default function App() {
 
       {/* ════════ CHAT AREA ════════ */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {/* Header */}
+        {/* Header - sticky agar tidak tertutup konten */}
         <div style={{
           padding: "13px 18px",
           borderBottom: "1px solid rgba(255,255,255,.07)",
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          background: "rgba(255,255,255,.02)", backdropFilter: "blur(10px)",
+          background: "rgba(15,14,26,0.92)", backdropFilter: "blur(10px)",
+          position: "sticky", top: 0, zIndex: 10, flexShrink: 0,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button
