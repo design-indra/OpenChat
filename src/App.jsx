@@ -240,7 +240,7 @@ export default function App() {
       const isZip =
         file.type === "application/zip" ||
         file.type === "application/x-zip-compressed" ||
-        file.type === "application/octet-stream" && file.name.endsWith(".zip") ||
+        (file.type === "application/octet-stream" && file.name.endsWith(".zip")) ||
         file.name.endsWith(".zip");
 
       let base64 = null, textContent = null, preview = null;
@@ -348,11 +348,10 @@ export default function App() {
       currentContent.push({ type: "text", text: userText.trim() });
     }
 
-    // History hanya kirim teks (hemat token)
-    const apiHistory = history.map((m) => ({
-      role: m.role,
-      content: m.content || "",
-    }));
+    // History hanya kirim teks (hemat token), skip pesan dengan content kosong
+    const apiHistory = history
+      .map((m) => ({ role: m.role, content: m.content || "" }))
+      .filter((m) => m.content.trim() !== "");
 
     // FIX: jika hanya 1 blok teks, kirim sebagai string biasa (lebih kompatibel)
     const lastContent =
@@ -368,6 +367,13 @@ export default function App() {
     if ((!input.trim() && attachments.length === 0) || loading) return;
     if (!savedKey) {
       setError("Masukkan API Key OpenRouter terlebih dahulu!");
+      return;
+    }
+
+    // FIX: cegah kirim gambar ke model yang tidak support vision
+    const hasImages = attachments.some((a) => a.isImage);
+    if (hasImages && !selectedModel?.vision) {
+      setError(`❌ Model "${selectedModel?.name}" tidak mendukung gambar. Pilih model dengan tag 👁 Vision.`);
       return;
     }
 
